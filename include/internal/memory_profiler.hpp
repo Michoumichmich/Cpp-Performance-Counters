@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cache.hpp"
+#include "config.hpp"
 #include <memory>
 #include <utility>
 #include <array>
@@ -13,6 +14,7 @@ class profiler;
 template<bool thread_safe = false>
 class memory_profiler {
 private:
+    std::mutex state_mutex_;
     std::string name_;
     std::vector<cache_layer<thread_safe>> caches_;
     profiler<thread_safe> *parent_;
@@ -37,9 +39,10 @@ public:
         parent_->unregister_mem_profiler(this);
     }
 
+private:
 
     template<typename T>
-    T &operator()(T *ptr) {
+    T &access_ptr(T *ptr) {
         ++memory_accesses_;
         memory_read_ += sizeof(T);
 
@@ -58,6 +61,22 @@ public:
 
 
 public:
+
+    template<typename T>
+    inline T &operator()(T *ptr) {
+        if constexpr(enable_profilers) {
+            if constexpr(thread_safe) {
+                std::lock_guard m(state_mutex_);
+                return access_ptr(ptr);
+            } else {
+                return access_ptr(ptr);
+            }
+        } else {
+            return *ptr;
+        }
+
+    }
+
     friend std::ostream &operator<<(std::ostream &os, const memory_profiler &profiler) {
         os << " - Memory report for: " << profiler.name_ << ":\n";
         if (!profiler.memory_accesses_) {
