@@ -1,8 +1,9 @@
 #pragma once
 
+#include "config.hpp"
+
 #include <string>
 #include <utility>
-
 #include <cmath>
 #include <ostream>
 
@@ -44,14 +45,16 @@ public:
         parent_->unregister_branch_profiler(this);
     }
 
-    bool operator()(bool b) {
-        if constexpr(thread_safe) {
-            std::lock_guard m(state_mutex_);
-            true_counter_ += b;
-            counter_++;
-        } else {
-            true_counter_ += b;
-            counter_++;
+    inline bool operator()(bool b) {
+        if constexpr(enable_profilers) {
+            if constexpr(thread_safe) {
+                std::lock_guard m(state_mutex_);
+                true_counter_ += b;
+                counter_++;
+            } else {
+                true_counter_ += b;
+                counter_++;
+            }
         }
         return b;
     }
