@@ -1,7 +1,7 @@
 #include <iostream>
 
 
-#include "include/profiler.hpp"
+#include "../include/profiler.hpp"
 
 int main() {
 
